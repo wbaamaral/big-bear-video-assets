@@ -1,59 +1,59 @@
-version: "3" # Specifies the version of the Docker Compose file format
+version: "3.9" # Especifica a versão do formato do arquivo Docker Compose
 
-services: # Defines the services that make up the application
-  # Service: big-bear-speedtest-tracker
-  big-bear-speedtest-tracker:
-    container_name: big-bear-speedtest-tracker # Name of the container, useful for referencing and managing the container
-    image: linuxserver/speedtest-tracker:0.20.7 # Docker image to use, pulling the latest version
+services: # Define os serviços que compõem a aplicação
+  # Serviço: big-bear-speedtest-tracker
+  speedtest:
+    image: linuxserver/speedtest-tracker:0.20.7 # Imagem Docker a ser usada, puxando a última versão
     ports:
-      - "8080:80" # Maps port 8080 on the host to port 80 in the container; used for HTTP traffic
-      - "8443:443" # Maps port 8443 on the host to port 443 in the container; used for HTTPS traffic
-    environment: # Environment variables for the container, used to configure the container's software
-      - PUID=1000 # User ID for file permissions
-      - PGID=1000 # Group ID for file permissions
-      - DB_CONNECTION=mysql # Database connection type, indicating MySQL is used
-      - DB_HOST=big-bear-speedtest-tracker-db # Hostname of the database, linked to the db service
-      - DB_PORT=3306 # Port for the MySQL database
-      - DB_DATABASE=speedtest_tracker # Database name to be used
-      - DB_USERNAME=dockge # Database username
-      - DB_PASSWORD=dockge # Database password
-      - TZ=UTC # Timezone setting for the container; affects how time is reported
-    volumes: # Mounts host paths into the container, for persistent storage or sharing data
-      - "/etc/localtime:/etc/localtime:ro" # Mounts the host's localtime as read-only for accurate time syncing
-      - "speedtest_tracker_config:/config" # Volume for storing configuration files
-      - "speedtest_tracker_web:/etc/ssl/web" # Volume for storing SSL certificates or web-related files
-    restart: unless-stopped # Container restart policy: restart if the container stops unexpectedly
+      - "1580:80" # Mapeia a porta 1580 no host para a porta 80 no contêiner; usada para tráfego HTTP
+      - "1543:443" # Mapeia a porta 1543 no host para a porta 443 no contêiner; usada para tráfego HTTPS
+    environment: # Variáveis de ambiente para o contêiner, usadas para configurar o software do contêiner
+      - PUID=1000 # ID do usuário para permissões de arquivo
+      - PGID=1000 # ID do grupo para permissões de arquivo
+      - DB_CONNECTION=mysql # Tipo de conexão de banco de dados, indicando que MySQL é usado
+      - DB_HOST=speedtest-db # Nome do host do banco de dados, vinculado ao serviço db
+      - DB_PORT=3306 # Porta para o banco de dados MySQL
+      - DB_DATABASE=speedtest_tracker # Nome do banco de dados a ser usado
+      - DB_USERNAME=dockge # Nome de usuário do banco de dados
+      - DB_PASSWORD=dockge # Senha do banco de dados
+      - TZ=UTC # Configuração de fuso horário para o contêiner; afeta como o tempo é relatado
+    volumes: # Monta caminhos do host no contêiner, para armazenamento persistente ou compartilhamento de dados
+      - "/etc/localtime:/etc/localtime:ro" # Monta o localtime do host como somente leitura para sincronização precisa do tempo
+      - "speedtest_tracker_config:/config" # Volume para armazenamento de arquivos de configuração
+      - "speedtest_tracker_web:/etc/ssl/web" # Volume para armazenamento de certificados SSL ou arquivos relacionados à web
+    deploy:
+      restart_policy:
+        condition: any
     networks:
-      - big_bear_speedtest_tracker_network # Attaches the container to the big_bear_speedtest_tracker_network network
-    depends_on: # Dependency setting, indicating that this service depends on the db service
-      - big-bear-speedtest-tracker-db # Ensures db service is started before speedtest-tracker
-
-  # Service: db (Database)
-  big-bear-speedtest-tracker-db:
-    container_name: big-bear-speedtest-tracker-db # Name of the container, useful for referencing and managing the container
-    image: mariadb:10 # MariaDB image, version 10, used as the database server
-    restart: always # Restart policy: always restarts the container if it stops for any reason
-    environment: # Environment variables to configure MariaDB
-      - MARIADB_DATABASE=speedtest_tracker # Database to be created automatically
-      - MARIADB_USER=dockge # Username for the database, used by speedtest-tracker
-      - MARIADB_PASSWORD=dockge # Password for the database user
-      - MARIADB_RANDOM_ROOT_PASSWORD=true # Enables random password generation for the root user for security
+      - speedtest_network # Anexa o contêiner à rede speedtest_network
+    depends_on: # Configuração de dependência, indicando que este serviço depende do serviço db
+      - speedtest-db # Garante que o serviço db seja iniciado antes do speedtest-tracker
+        
+  # Serviço: db (Banco de Dados)
+  speedtest-db:
+    image: mariadb:10 # Imagem MariaDB, versão 10, usada como servidor de banco de dados
+    environment: # Variáveis de ambiente para configurar o MariaDB
+      - MARIADB_DATABASE=speedtest_tracker # Banco de dados a ser criado automaticamente
+      - MARIADB_USER=dockge # Nome de usuário para o banco de dados, usado pelo speedtest-tracker
+      - MARIADB_PASSWORD=dockge # Senha para o usuário do banco de dados
+      - MARIADB_RANDOM_ROOT_PASSWORD=true # Habilita a geração de senha aleatória para o usuário root para segurança
     networks:
-      - big_bear_speedtest_tracker_network # Attaches the container to the big_bear_speedtest_tracker_network network
-    volumes: # Mount for database storage, ensuring data persists across container restarts and removal
-      - speedtest_tracker_db:/var/lib/mysql # Maps the host directory to the container's database storage location
-
-# Define the networks configuration
+      - speedtest_network # Anexa o contêiner à rede speedtest_network
+    volumes: # Monta para armazenamento de banco de dados, garantindo que os dados persistam entre reinicializações e remoções de contêiner
+      - speedtest_tracker_db:/var/lib/mysql # Mapeia o diretório do host para o local de armazenamento do banco de dados do contêiner
+    deploy:
+      restart_policy:
+        condition: any  
+        
+# Define a configuração das redes
 networks:
-  # Define the big_bear_speedtest_tracker_network
-  big_bear_speedtest_tracker_network:
-    # Set the driver to bridge
-    driver: bridge
+  speedtest_network:
+    external: true # Especifica que a rede já existe fora do escopo do Compose
 
 volumes:
-  speedtest_tracker_config: # Named volume for storing configuration files
-    driver: local # Managed by Docker's local volume driver
-  speedtest_tracker_web: # Named volume for storing SSL certificates or web-related files
-    driver: local # Managed by Docker's local volume driver
-  speedtest_tracker_db: # Named volume for storing the database
-    driver: local # Managed by Docker's local volume driver
+  speedtest_tracker_config: # Volume nomeado para armazenamento de arquivos de configuração
+    driver: local # Gerenciado pelo driver de volume local do Docker
+  speedtest_tracker_web: # Volume nomeado para armazenamento de certificados SSL ou arquivos relacionados à web
+    driver: local # Gerenciado pelo driver de volume local do Docker
+  speedtest_tracker_db: # Volume nomeado para armazenamento do banco de dados
+    driver: local # Gerenciado pelo driver de volume local do Docker
